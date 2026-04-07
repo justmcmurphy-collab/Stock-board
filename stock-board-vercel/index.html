@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Samsung & SK hynix 实时价格看板</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #0b0f14;
+      color: #f5f7fb;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+    .wrap {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 28px 20px 40px;
+    }
+    .hero {
+      margin-bottom: 20px;
+    }
+    .title {
+      font-size: 34px;
+      font-weight: 800;
+      letter-spacing: .2px;
+      margin-bottom: 10px;
+    }
+    .sub {
+      color: #aeb8c6;
+      line-height: 1.75;
+      font-size: 14px;
+    }
+    .toolbar {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin: 18px 0 24px;
+    }
+    .pill {
+      background: #131a23;
+      border: 1px solid #1f2937;
+      border-radius: 999px;
+      padding: 10px 14px;
+      color: #dbe4ef;
+      font-size: 14px;
+    }
+    button {
+      border: none;
+      cursor: pointer;
+      background: #2563eb;
+      color: white;
+      padding: 10px 16px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+    }
+    .card {
+      background: linear-gradient(180deg, #111826 0%, #0f1622 100%);
+      border: 1px solid #1f2937;
+      border-radius: 22px;
+      padding: 22px;
+      box-shadow: 0 18px 50px rgba(0,0,0,.25);
+    }
+    .name {
+      font-size: 26px;
+      font-weight: 800;
+      margin-bottom: 6px;
+    }
+    .ticker {
+      color: #93a1b5;
+      font-size: 14px;
+      margin-bottom: 24px;
+    }
+    .price {
+      font-size: 54px;
+      font-weight: 900;
+      letter-spacing: .4px;
+      margin-bottom: 10px;
+    }
+    .change {
+      font-size: 22px;
+      font-weight: 800;
+      margin-bottom: 22px;
+    }
+    .up { color: #22c55e; }
+    .down { color: #ef4444; }
+    .flat { color: #cbd5e1; }
+    .meta {
+      display: grid;
+      gap: 12px;
+    }
+    .row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding-top: 12px;
+      border-top: 1px solid #1f2937;
+      font-size: 14px;
+      color: #d7deea;
+    }
+    .label { color: #93a1b5; }
+    .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 18px;
+    }
+    .linkbtn {
+      display: inline-block;
+      text-decoration: none;
+      color: white;
+      background: #374151;
+      padding: 10px 14px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .error {
+      display: none;
+      margin-top: 20px;
+      background: rgba(239,68,68,.12);
+      border: 1px solid rgba(239,68,68,.35);
+      color: #fecaca;
+      padding: 14px 16px;
+      border-radius: 14px;
+      line-height: 1.65;
+      font-size: 14px;
+    }
+    .foot {
+      color: #91a0b4;
+      font-size: 13px;
+      line-height: 1.7;
+      margin-top: 18px;
+    }
+    @media (max-width: 900px) {
+      .grid { grid-template-columns: 1fr; }
+      .title { font-size: 28px; }
+      .price { font-size: 44px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="hero">
+      <div class="title">Samsung Electronics & SK hynix 实时价格看板</div>
+      <div class="sub">
+        这是可部署到 Vercel 的在线版。前端不直接抓第三方行情，而是调用你自己站点下的 <b>/api/quotes</b>，绕开浏览器跨域问题。<br>
+        标的已固定：三星电子 <b>005930.KS</b> / <b>005930:KRX</b>，SK海力士 <b>000660.KS</b> / <b>000660:KRX</b>。
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <div class="pill">自动刷新：15 秒</div>
+      <div class="pill" id="lastUpdate">最近更新：--</div>
+      <button onclick="refreshAll()">立即刷新</button>
+    </div>
+
+    <div class="grid">
+      <section class="card">
+        <div class="name">三星电子</div>
+        <div class="ticker">Samsung Electronics ｜ 005930.KS</div>
+        <div class="price" id="price-samsung">--</div>
+        <div class="change flat" id="change-samsung">--</div>
+        <div class="meta">
+          <div class="row"><span class="label">状态</span><span id="state-samsung">--</span></div>
+          <div class="row"><span class="label">前收</span><span id="prev-samsung">--</span></div>
+          <div class="row"><span class="label">最新时间</span><span id="time-samsung">--</span></div>
+        </div>
+        <div class="actions">
+          <a class="linkbtn" href="https://www.google.com/finance/quote/005930:KRX" target="_blank" rel="noopener">Google Finance</a>
+          <a class="linkbtn" href="https://finance.yahoo.com/quote/005930.KS/" target="_blank" rel="noopener">Yahoo</a>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="name">SK海力士</div>
+        <div class="ticker">SK hynix ｜ 000660.KS</div>
+        <div class="price" id="price-hynix">--</div>
+        <div class="change flat" id="change-hynix">--</div>
+        <div class="meta">
+          <div class="row"><span class="label">状态</span><span id="state-hynix">--</span></div>
+          <div class="row"><span class="label">前收</span><span id="prev-hynix">--</span></div>
+          <div class="row"><span class="label">最新时间</span><span id="time-hynix">--</span></div>
+        </div>
+        <div class="actions">
+          <a class="linkbtn" href="https://www.google.com/finance/quote/000660:KRX" target="_blank" rel="noopener">Google Finance</a>
+          <a class="linkbtn" href="https://finance.yahoo.com/quote/000660.KS/" target="_blank" rel="noopener">Yahoo</a>
+        </div>
+      </section>
+    </div>
+
+    <div class="error" id="errorBox"></div>
+    <div class="foot">部署后直接访问你的 Vercel 域名即可在线打开。默认每 15 秒刷新一次价格。</div>
+  </div>
+
+  <script>
+    const krw = new Intl.NumberFormat('ko-KR', {
+      style: 'currency',
+      currency: 'KRW',
+      maximumFractionDigits: 0
+    });
+
+    function formatChange(change, changePct) {
+      if (typeof change !== 'number' || typeof changePct !== 'number') return '--';
+      const sign = change > 0 ? '+' : '';
+      return `${sign}${krw.format(change)} (${sign}${changePct.toFixed(2)}%)`;
+    }
+
+    function apply(prefix, item) {
+      document.getElementById(`price-${prefix}`).textContent = krw.format(item.price);
+      const changeEl = document.getElementById(`change-${prefix}`);
+      changeEl.textContent = formatChange(item.change, item.changePct);
+      changeEl.className = 'change ' + (item.change > 0 ? 'up' : item.change < 0 ? 'down' : 'flat');
+      document.getElementById(`state-${prefix}`).textContent = item.marketState || '--';
+      document.getElementById(`prev-${prefix}`).textContent = typeof item.previousClose === 'number' ? krw.format(item.previousClose) : '--';
+      document.getElementById(`time-${prefix}`).textContent = new Date(item.timestamp).toLocaleString('zh-CN', { hour12: false });
+    }
+
+    function showError(message) {
+      const box = document.getElementById('errorBox');
+      box.style.display = 'block';
+      box.textContent = message;
+    }
+
+    function clearError() {
+      const box = document.getElementById('errorBox');
+      box.style.display = 'none';
+      box.textContent = '';
+    }
+
+    async function refreshAll() {
+      try {
+        clearError();
+        const res = await fetch('/api/quotes', { cache: 'no-store' });
+        const json = await res.json();
+        if (!res.ok || !json.ok) throw new Error(json.error || 'Request failed');
+        apply('samsung', json.data.samsung);
+        apply('hynix', json.data.hynix);
+        document.getElementById('lastUpdate').textContent = '最近更新：' + new Date(json.updatedAt).toLocaleString('zh-CN', { hour12: false });
+      } catch (err) {
+        showError('获取价格失败：' + err.message + '。如果刚部署完成，稍等十几秒后再刷新一次。');
+      }
+    }
+
+    refreshAll();
+    setInterval(refreshAll, 15000);
+  </script>
+</body>
+</html>
