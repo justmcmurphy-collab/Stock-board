@@ -1,78 +1,50 @@
 module.exports = async (req, res) => {
+  res.setHeader('Cache-Control', 's-maxage=30, stale-while-revalidate=60');
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
+  const marketStateMap = { REGULAR:'正常交易', CLOSED:'已收盘', PRE:'盘前', POST:'盘后', PREPRE:'盘前', POSTPOST:'盘后' };
+
+  function safeNumber(v){ return typeof v === 'number' && Number.isFinite(v) ? v : null; }
+  function formatTime(ts){
+    if(!ts) return null;
+    try { return new Date(ts * 1000).toLocaleString('zh-CN', { hour12:false, timeZone:'Asia/Seoul' }); }
+    catch { return null; }
   }
 
-  const symbols = {
-    samsung: '005930.KS',
-    hynix: '000660.KS',
-  };
+  async function fetchQuote(symbol){
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=5d`;
+    const response = await fetch(url, { headers:{ 'User-Agent':'Mozilla/5.0', 'Accept':'application/json,text/plain,*/*' } });
+    if(!response.ok) throw new Error(`chart failed: ${symbol} ${response.status}`);
+    const json = await response.json();
+    const meta = json?.chart?.result?.[0]?.meta;
+    if(!meta) throw new Error(`no meta for ${symbol}`);
 
-  const fetchQuote = async (symbol) => {
-    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1m&range=1d`;
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0',
-        'Accept': 'application/json,text/plain,*/*',
-      },
-      cache: 'no-store',
-    });
-
-    if (!response.ok) {
-      throw new Error(`Upstream HTTP ${response.status} for ${symbol}`);
-    }
-
-    const data = await response.json();
-    const result = data?.chart?.result?.[0];
-    const meta = result?.meta;
-
-    if (!meta || typeof meta.regularMarketPrice !== 'number') {
-      throw new Error(`No valid price for ${symbol}`);
-    }
-
-    const price = meta.regularMarketPrice;
-    const prevClose = meta.previousClose;
-    const change = typeof prevClose === 'number' ? price - prevClose : null;
-    const changePct = typeof prevClose === 'number' && prevClose !== 0
-      ? (change / prevClose) * 100
-      : null;
+    const price = safeNumber(meta.regularMarketPrice);
+    const previousClose = safeNumber(meta.previousClose);
+    const open = safeNumber(meta.regularMarketOpen);
+    const dayHigh = safeNumber(meta.regularMarketDayHigh);
+    const dayLow = safeNumber(meta.regularMarketDayLow);
+    const volume = safeNumber(meta.regularMarketVolume);
+    const marketCap = safeNumber(meta.marketCap);
+    const trailingPE = safeNumber(meta.trailingPE);
+    const change = (price != null && previousClose != null) ? price - previousClose : null;
+    const changePercent = (change != null && previousClose) ? (change / previousClose) * 100 : null;
 
     return {
-      symbol,
-      shortName: meta.shortName || symbol,
-      currency: meta.currency || 'KRW',
-      exchangeName: meta.exchangeName || 'KRX',
-      marketState: meta.marketState || '',
-      price,
-      previousClose: prevClose,
-      change,
-      changePct,
-      timestamp: meta.regularMarketTime ? meta.regularMarketTime * 1000 : Date.now(),
+      symbol, price, previousClose, open, dayHigh, dayLow, volume, marketCap,
+      marketCapText: marketCap != null ? new Intl.NumberFormat('en-US', { notation:'compact', maximumFractionDigits:2 }).format(marketCap) : null,
+      trailingPE, change, changePercent,
+      marketState: meta.marketState || null,
+      marketStateText: marketStateMap[meta.marketState] || meta.marketState || null,
+      regularMarketTime: meta.regularMarketTime || null,
+      regularMarketTimeText: formatTime(meta.regularMarketTime)
     };
-  };
+  }
 
   try {
-    const [samsung, hynix] = await Promise.all([
-      fetchQuote(symbols.samsung),
-      fetchQuote(symbols.hynix),
-    ]);
-
-    return res.status(200).json({
-      ok: true,
-      updatedAt: Date.now(),
-      data: {
-        samsung,
-        hynix,
-      },
-    });
+    const [samsung, hynix] = await Promise.all([fetchQuote('005930.KS'), fetchQuote('000660.KS')]);
+    res.status(200).json({ samsung, hynix });
   } catch (error) {
-    return res.status(500).json({
-      ok: false,
-      error: error.message || 'Unknown error',
-    });
+    res.status(500).json({ error: error.message || 'quotes error' });
   }
 };

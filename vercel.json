@@ -1,16 +1,1 @@
-{
-  "functions": {
-    "api/quotes.js": {
-      "memory": 512,
-      "maxDuration": 10
-    }
-  },
-  "headers": [
-    {
-      "source": "/api/(.*)",
-      "headers": [
-        { "key": "Cache-Control", "value": "no-store" }
-      ]
-    }
-  ]
-}
+{"version":2}

@@ -1,9 +1,6 @@
 {
-  "name": "stock-board-vercel",
-  "private": true,
+  "name": "stock-board-pro",
   "version": "1.0.0",
-  "description": "Samsung Electronics & SK hynix live price board for Vercel",
-  "scripts": {
-    "dev": "vercel dev"
-  }
+  "private": true,
+  "description": "Samsung Electronics + SK hynix professional info board for Vercel"
 }
