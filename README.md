@@ -1,21 +1,13 @@
-# 专业版信息页（Vercel）
+# 专业版信息页 V2（Vercel）
 
-## 包含内容
-- 当前价格
-- 涨跌额 / 涨跌幅
-- 昨收 / 今开 / 日高 / 日低 / 成交量
-- 总市值
-- PE
-- 最新资讯
+## 这次更新
+- 资讯源改为更偏实时的聚合新闻接口
+- 恢复 Google Finance / Yahoo Finance 外链按钮
+- 保留价格、昨收、开盘、日高低、成交量、总市值、PE
 
 ## 文件结构
-- `index.html`：前端页面
-- `api/quotes.js`：行情接口
-- `api/news.js`：资讯接口
-- `vercel.json`：Vercel 配置
-
-## 验证
-部署后测试：
-- `/`
-- `/api/quotes`
-- `/api/news`
+- index.html
+- api/quotes.js
+- api/news.js
+- vercel.json
+- package.json

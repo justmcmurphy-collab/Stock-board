@@ -1,6 +1,6 @@
 {
-  "name": "stock-board-pro",
-  "version": "1.0.0",
+  "name": "stock-board-pro-v2",
+  "version": "1.1.0",
   "private": true,
   "description": "Samsung Electronics + SK hynix professional info board for Vercel"
 }
